@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pin API Gateway Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 60px auto;
+            padding: 20px;
+        }
+
+        input, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #6246ea;
+            color: white;
+            border: 0;
+            cursor: pointer;
+        }
+
+        #result {
+            padding: 12px;
+            background: #eee;
+            margin-top: 15px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Pin API Gateway</h2>
+
+    <form id="myForm">
+        <input
+            type="text"
+            id="name"
+            placeholder="Your name"
+            required
+        >
+
+        <textarea
+            id="message"
+            placeholder="Enter your message"
+            required
+        ></textarea>
+
+        <button type="submit">Send to n8n</button>
+    </form>
+
+    <div id="result">Waiting for submission...</div>
+
+    <script>
+        const API_URL = "http://localhost:8000/n8n";
+
+        document.getElementById("myForm")
+            .addEventListener("submit", async (event) => {
+
+            event.preventDefault();
+
+            const result = document.getElementById("result");
+            result.textContent = "Sending...";
+
+            const payload = {
+                name: document.getElementById("name").value,
+                message: document.getElementById("message").value
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(JSON.stringify(data));
+                }
+
+                result.textContent =
+                    "SUCCESS!\n" + JSON.stringify(data, null, 2);
+
+            } catch (error) {
+                result.textContent =
+                    "ERROR: " + error.message;
+            }
+        });
+    </script>
+
+</body>
+</html>

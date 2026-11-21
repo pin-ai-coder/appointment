@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Scheduler</title>
+    <style>
+        /* Clean, minimal system styling */
+        :root {
+            --bg: #f4f6f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #cbd5e1;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-soft: #eff6ff;
+            --success-bg: #f0fdf4;
+            --success-border: #86efac;
+            --success-text: #166534;
+            --error-bg: #fef2f2;
+            --error-border: #fca5a5;
+            --error-text: #991b1b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            padding: 24px 16px;
+        }
+
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+            background: var(--card);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 28px 24px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 0.925rem;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        @media (max-width: 500px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 0.95rem;
+            color: var(--text);
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            outline: none;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        /* Time Slots Grid */
+        .slot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .legend {
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        @media (max-width: 420px) {
+            .slots-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .slot-btn {
+            padding: 10px 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--text);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .slot-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .slot-btn.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .slot-btn:disabled {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #94a3b8;
+            text-decoration: line-through;
+            cursor: not-allowed;
+        }
+
+        /* Submit & Secondary Buttons */
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            margin-top: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 10px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            background: #f8fafc;
+        }
+
+        /* Validation & API Result Boxes */
+        .alert {
+            display: none;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
+            color: var(--error-text);
+        }
+
+        .result-box {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #334155;
+        }
+
+        .result-box:empty {
+            display: none;
+        }
+
+        /* Confirmation Card */
+        .confirmation-card {
+            display: none;
+            padding: 20px;
+            border-radius: 10px;
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+            color: var(--success-text);
+        }
+
+        .confirmation-card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 6px;
+        }
+
+        .summary-list {
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: #fff;
+            border: 1px solid #dcfce7;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .summary-list p {
+            margin-bottom: 6px;
+        }
+
+        .summary-list p:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <main class="container">
+        <h1>Book an Appointment</h1>
+        <p class="subtitle">Fill out your details and choose an available time slot below.</p>
+
+        <!-- Inline validation message (replaces browser alert) -->
+        <div id="formError" class="alert" role="alert"></div>
+
+        <!-- Appointment Booking Form -->
+        <form id="appointmentForm" novalidate>
+            <!-- 1. Full Name -->
+            <div class="form-group">
+                <label for="fullName">Full Name *</label>
+                <input type="text" id="fullName" name="fullName" placeholder="Jane Doe" required>
+            </div>
+
+            <!-- 2. Email & Phone -->
+            <div class="row">
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" placeholder="jane@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" required>
+                </div>
+            </div>
+
+            <!-- 3. Service & 4. Date -->
+            <div class="row">
+                <div class="form-group">
+                    <label for="service">Appointment Service *</label>
+                    <select id="service" name="service" required>
+                        <option value="" disabled selected>Select a service...</option>
+                        <option value="Initial Consultation (30 min)">Initial Consultation </option>
+                        <option value="Standard Session (60 min)">Standard Session </option>
+                        <option value="Follow-up Review (30 min)">Follow-up Review </option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="date">Preferred Date *</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+            </div>
+
+            <!-- 5. Time Slots -->
+            <div class="form-group">
+                <div class="slot-header">
+                    <label>Available Time Slots *</label>
+                    <span class="legend">Click an available time</span>
+                </div>
+                <input type="hidden" id="timeSlot" name="timeSlot" required>
+                <div id="slotsGrid" class="slots-grid"></div>
+            </div>
+
+            <!-- 6. Submit Button -->
+            <button type="submit" id="submitBtn" class="btn-submit">Submit Appointment Request</button>
+        </form>
+
+        <!-- 7. Confirmation Card (Shown after successful submission) -->
+        <section id="confirmationCard" class="confirmation-card" aria-live="polite">
+            <h2>Appointment Request Submitted!</h2>
+            <p>Thank you. Your booking request has been sent successfully.</p>
+            <div id="bookingSummary" class="summary-list"></div>
+            <button type="button" id="resetBtn" class="btn-secondary">Book Another Appointment</button>
+        </section>
+
+        <!-- API Response / Error Output -->
+        <pre id="result" class="result-box"></pre>
+    </main>
+
+    <script>
+        const API_URL = "http://localhost:8000/n8n";
+
+        const form = document.getElementById("appointmentForm");
+        const dateInput = document.getElementById("date");
+        const slotsGrid = document.getElementById("slotsGrid");
+        const timeSlotInput = document.getElementById("timeSlot");
+        const formError = document.getElementById("formError");
+        const submitBtn = document.getElementById("submitBtn");
+        const confirmationCard = document.getElementById("confirmationCard");
+        const bookingSummary = document.getElementById("bookingSummary");
+        const resetBtn = document.getElementById("resetBtn");
+        const result = document.getElementById("result");
+
+        const TIME_SLOTS = [
+            "09:00 AM",
+            "10:30 AM",
+            "01:00 PM",
+            "02:30 PM",
+            "04:00 PM",
+            "05:00 PM"
+        ];
+
+        // Set default & minimum date to today
+        const today = new Date().toISOString().split("T")[0];
+        dateInput.min = today;
+        dateInput.value = today;
+
+        // Simulate booked slots based on selected date
+        function getBookedSlots(dateStr) {
+            if (!dateStr) return [];
+            const day = parseInt(dateStr.split("-")[2], 10) || 1;
+            return day % 2 === 0 ? ["10:30 AM", "04:00 PM"] : ["01:00 PM"];
+        }
+
+        // Render clickable time slots grid
+        function renderSlots(dateStr) {
+            slotsGrid.innerHTML = "";
+            timeSlotInput.value = "";
+            const booked = getBookedSlots(dateStr);
+
+            TIME_SLOTS.forEach((slot) => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "slot-btn";
+                btn.textContent = slot;
+
+                if (booked.includes(slot)) {
+                    btn.disabled = true;
+                    btn.title = "Already booked";
+                } else {
+                    btn.addEventListener("click", () => {
+                        document.querySelectorAll(".slot-btn").forEach((b) => b.classList.remove("selected"));
+                        btn.classList.add("selected");
+                        timeSlotInput.value = slot;
+                        hideError();
+                    });
+                }
+
+                slotsGrid.appendChild(btn);
+            });
+        }
+
+        function showError(msg) {
+            formError.textContent = msg;
+            formError.style.display = "block";
+        }
+
+        function hideError() {
+            formError.style.display = "none";
+            formError.textContent = "";
+        }
+
+        // Initialize slots and update when date changes
+        renderSlots(dateInput.value);
+        dateInput.addEventListener("change", (e) => {
+            renderSlots(e.target.value);
+            hideError();
+        });
+
+        // Handle form submission
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            hideError();
+
+            const name = document.getElementById("fullName").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+            const service = document.getElementById("service").value;
+            const date = dateInput.value;
+            const timeSlot = timeSlotInput.value;
+
+            // Basic validation
+            if (!name) return showError("Please enter your full name.");
+            if (!email || !email.includes("@")) return showError("Please enter a valid email address.");
+            if (!phone) return showError("Please enter your phone number.");
+            if (!service) return showError("Please select an appointment service.");
+            if (!date) return showError("Please select a preferred date.");
+            if (!timeSlot) return showError("Please select an available time slot.");
+
+            const payload = {
+                name,
+                email,
+                phone,
+                service,
+                date,
+                timeSlot,
+                message: `Appointment request for ${service} on ${date} at ${timeSlot} (${email}, ${phone})`
+            };
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Sending...";
+            result.textContent = "Sending...";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const rawText = await response.text();
+                let data;
+                try {
+                    data = rawText ? JSON.parse(rawText) : { status: "ok" };
+                } catch {
+                    data = { raw: rawText };
+                }
+
+                if (!response.ok) {
+                    throw new Error(JSON.stringify(data));
+                }
+
+                result.textContent = "SUCCESS!\n" + JSON.stringify(data, null, 2);
+
+                // Populate and display confirmation card
+                bookingSummary.innerHTML = `
+                    <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+                    <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+                    <p><strong>Phone:</strong> ${escapeHtml(phone)}</p>
+                    <p><strong>Service:</strong> ${escapeHtml(service)}</p>
+                    <p><strong>Date &amp; Time:</strong> ${escapeHtml(date)} at ${escapeHtml(timeSlot)}</p>
+                `;
+
+                form.style.display = "none";
+                confirmationCard.style.display = "block";
+
+            } catch (error) {
+                result.textContent = "ERROR: " + error.message;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Submit Appointment Request";
+            }
+        });
+
+        // Reset form to book another appointment
+        resetBtn.addEventListener("click", () => {
+            form.reset();
+            dateInput.value = today;
+            renderSlots(today);
+            result.textContent = "";
+            confirmationCard.style.display = "none";
+            form.style.display = "block";
+        });
+
+        // Helper to safely render user input in summary HTML
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, (char) => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char]));
+        }
+    </script>
+</body>
+</html>
